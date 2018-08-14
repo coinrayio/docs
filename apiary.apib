@@ -1,80 +1,363 @@
 FORMAT: 1A
-HOST: http://polls.apiblueprint.org/
+HOST: https://coinray.io/api/v1
 
 # CoinRay
 
-Polls is a simple API allowing consumers to view polls and vote in them.
+## General
+CoinRay offers a uniform API to get data from several exchanges.  
+Every endpoint must be access via HTTPS
 
-## Questions Collection [/questions]
+V1 API endpoint: https://coinray.io/api/v1
 
-### List All Questions [GET]
+## Authentication
+All enpdoints require authentication via AccessTokens.  
+AccessTokens must be signed [JSON Web Tokens (JWT)](https://jwt.io/).  
+
+AccessTokens can be supplied via the Authorization header or the access_token param
+
+**Header**
+```
+Authorization: Bearer <access_token>
+```
+
+**Param**
+```
+?access_token=<access_token>
+```
+
+The AccessToken must contain the following form:
+
+**Header**
+```json
+{
+  "alg": "HS256",
+  "kid": "<Key ID>"
+}
+```
+
+**Payload**
+```json
+{
+  "iss": "<Key ID>",
+  "sub": "<Any unique identifier>"
+}
+```
+
+In the subject you may supply the unique identifier for a specific user.  
+If your subscription allows multiple users, this will make sure the rate limits are applied per unique subject.  
+If your subscription doesn't allow multiple  users, the subject will be ignored.
+
+
+
+## Exchange Collection [/exchanges?access_token={access_token}]
+
+### List all exchanges [GET]
+
++ Request (text/plain)
+
++ Parameters
+    + access_token (string) - Signed JWT
 
 + Response 200 (application/json)
 
         [
             {
-                "question": "Favourite programming language?",
-                "published_at": "2015-08-05T08:40:51.620Z",
-                "choices": [
-                    {
-                        "choice": "Swift",
-                        "votes": 2048
-                    }, {
-                        "choice": "Python",
-                        "votes": 1024
-                    }, {
-                        "choice": "Objective-C",
-                        "votes": 512
-                    }, {
-                        "choice": "Ruby",
-                        "votes": 256
-                    }
-                ]
+                "id": 1,
+                "name": "Bittrex",
+                "code": "BTRX"
+            },
+            {
+                "id": 2,
+                "name": "Binance",
+                "code": "BINA"
+            },
+            {
+                "id": 3,
+                "name": "HitBTC",
+                "code": "HITB"
+            },
+            {
+                "id": 4,
+                "name": "Poloniex",
+                "code": "PLNX"
+            },
+            {
+                "id": 5,
+                "name": "Kucoin",
+                "code": "KUCN"
+            },
+            {
+                "id": 6,
+                "name": "Cryptopia",
+                "code": "CPIA"
             }
         ]
+        
+## Market Collection [/markets?access_token={access_token}&exchange={exchange}]
 
-### Create a New Question [POST]
+### List all markets [GET]
 
-You may create your own question using this action. It takes a JSON
-object containing a question and a collection of answers in the
-form of choices.
++ Request (text/plain)
 
-+ Request (application/json)
++ Parameters
+  + access_token (string)
+      Signed JWT
+  + exchange (enum[string])
+      Exchange codes can be requested via the exchange endpoint
+      + Members
+          + `BINA`
+          + `BTRX`
+          + `HITB`
+          + `PLNX`
+          + `KUCN`
+          + `CPIA`
+          
++ Response 200 (application/json)
 
-        {
-            "question": "Favourite programming language?",
-            "choices": [
-                "Swift",
-                "Python",
-                "Objective-C",
-                "Ruby"
+        [
+          {
+            "id": 535,
+            "exchange_id": 1,
+            "symbol": "BTC-2GIVE",
+            "base_currency": "2give",
+            "quote_currency": "btc",
+            "volume": "1895261.35480701",
+            "quote_volume": "0.90839429",
+            "last_price": "0.00000045",
+            "btc_volume": "0.90839429",
+            "usd_volume": "5477.61756869",
+            "ask_price": "0.00000045",
+            "bid_price": "0.00000044",
+            "update_scheduled_at": null,
+            "active": true,
+            "created_at": "2018-07-02T16:42:30.000Z",
+            "updated_at": "2018-08-14T16:37:50.000Z"
+          },
+          {
+            "id": 438,
+            "exchange_id": 1,
+            "symbol": "BTC-ABY",
+            "base_currency": "aby",
+            "quote_currency": "btc",
+            "volume": "24656500.98511418",
+            "quote_volume": "9.37096085",
+            "last_price": "0.00000033",
+            "btc_volume": "9.37096085",
+            "usd_volume": "56403.15738889",
+            "ask_price": "0.00000033",
+            "bid_price": "0.00000031",
+            "update_scheduled_at": null,
+            "active": true,
+            "created_at": "2018-07-02T16:42:30.000Z",
+            "updated_at": "2018-08-14T16:49:40.000Z"
+          }
+        ]
+
+### List recent trades [GET /trades?access_token={access_token}&symbol={symbol}]
+
++ Request (text/plain)
+
++ Parameters
+  + access_token (string)
+    Signed JWT
+  + symbol (string)
+    Symbols are constructed via `<exchange_code>_<quote_currency>_<base_currency>`  
+    eg. `BTRX_USDT_BTC`
+    
+    
++ Response 200 (application/json)
+  + Body
+
+            [
+              [
+                "59071157",     
+                1534265709,     
+                "6004.61",      
+                "0.02976074",   
+                "sell"          
+              ],
+              [
+                "59071052",
+                1534265667,
+                "6028.71999996",
+                "1.3195",
+                "buy"
+              ],
+              [
+                "59071052",
+                1534265667,
+                "6028.71999996",
+                "1.3195",
+                "buy"
+              ]
             ]
-        }
+  + Schema
 
-+ Response 201 (application/json)
+            [
+                [
+                    "External ID",
+                    "Time in unix epoch",
+                    "Price",
+                    "Quantity",
+                    "buy/sell",
+                ]
+            ]
 
-    + Headers
+### List order book [GET /order_book?access_token={access_token}&symbol={symbol}]
 
-            Location: /questions/2
++ Request (text/plain)
 
-    + Body
++ Parameters
+  + access_token (string)
+    Signed JWT
+  + symbol (string)
+    Symbols are constructed via `<exchange_code>_<quote_currency>_<base_currency>`  
+    eg. `BTRX_USDT_BTC`
+    
+    
++ Response 200 (application/json)
+  + Body
 
             {
-                "question": "Favourite programming language?",
-                "published_at": "2015-08-05T08:40:51.620Z",
-                "choices": [
-                    {
-                        "choice": "Swift",
-                        "votes": 0
-                    }, {
-                        "choice": "Python",
-                        "votes": 0
-                    }, {
-                        "choice": "Objective-C",
-                        "votes": 0
-                    }, {
-                        "choice": "Ruby",
-                        "votes": 0
-                    }
+              "bids": [
+                [
+                  "6024.0",
+                  "1.96383205"
+                ],
+                [
+                  "6019.97",
+                  "0.0394"
+                ]
+              ],
+              "asks": [
+                [
+                  "6034.0377",
+                  "0.0018"
+                ],
+                [
+                  "6038.0",
+                  "0.01976702"
+                ]
+              ]
+            }
+            
+  + Schema
+
+            {
+               "bids": [
+                    [ "Price", "Quantity"]
+                ],
+                "asks": [
+                    [ "Price", "Quantity"]
                 ]
             }
+            
+### List candles [GET /candles?access_token={access_token}&symbol={symbol}&resolution={resolution}&start_time={start_time}&end_time={end_time}]
+
++ Request (text/plain)
+
++ Parameters
+  + access_token (string)
+      Signed JWT
+  + symbol (string)
+      Symbols are constructed via `<exchange_code>_<quote_currency>_<base_currency>`  
+      eg. `BTRX_USDT_BTC`
+  + resolution (enum[string])
+      Resolution for the candles
+      + Members
+          + `1`
+          + `3`
+          + `5`
+          + `15`
+          + `30`
+          + `60`
+          + `120`
+          + `240`
+          + `1D`
+  + start_time (number, optional)
+      Start time in unix epoch
+  + end_time (number, optional)
+      End time in unix epoch
+      
++ Response 200 (application/json)
+  + Body
+
+            [
+                [
+                    1530669600,
+                    "6450.00000000",
+                    "6468.82",
+                    "6429.0",
+                    "6438.62000000",
+                    "333716.19308692"
+                ],
+                [
+                    1530673200,
+                    "6438.62000000",
+                    "6482.46",
+                    "6430.00000018",
+                    "6473.10000000",
+                    "215874.91335952"
+                ]
+            ]
+  + Schema
+
+            [
+                [
+                    "Time in unix epoch",
+                    "Open",
+                    "High",
+                    "Low",
+                    "Close",
+                    "Volume in quote currency"
+                ]
+            ]
+
+### Latest candle [GET /candles/latest?access_token={access_token}&symbol={symbol}&resolution={resolution}]
+
++ Request (text/plain)
+
++ Parameters
+  + access_token (string)
+      Signed JWT
+  + symbol (string)
+      Symbols are constructed via `<exchange_code>_<quote_currency>_<base_currency>`  
+      eg. `BTRX_USDT_BTC`
+  + resolution (enum[string])
+      Resolution for the candles
+      + Members
+          + `1`
+          + `3`
+          + `5`
+          + `15`
+          + `30`
+          + `60`
+          + `120`
+          + `240`
+          + `1D`
+      
++ Response 200 (application/json)
+  + Body
+
+            [
+                [
+                    1530669600,
+                    "6450.00000000",
+                    "6468.82",
+                    "6429.0",
+                    "6438.62000000",
+                    "333716.19308692"
+                ]
+            ]
+  + Schema
+
+            [
+                [
+                    "Time in unix epoch",
+                    "Open",
+                    "High",
+                    "Low",
+                    "Close",
+                    "Volume in quote currency"
+                ]
+            ]
